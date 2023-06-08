@@ -16,3 +16,13 @@ Usage
 * `npm i`
 * edit `dump-to-csv.ts` and put your own path to `chainstate`
 * `npx ts-node dump-to-csv.ts`
+
+
+
+
+Tests
+-----
+
+Tests live in `tests/`
+
+* `npm t`
