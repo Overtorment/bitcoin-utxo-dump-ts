@@ -25,9 +25,23 @@ export function keyToOutPoint(key: Buffer): OutPoint {
 		throw new Error('Unexpected event type');
 	}
 
+	const txid = key.subarray(1, 33).reverse();
+
+	let vout = 0;
+	switch (key.length - 33) {
+		case 1: {
+			vout = key.subarray(33, key.length + 1).readInt8();
+			break;
+		}
+
+		default: {
+			vout = Number(varint128Decode(key.subarray(33, key.length + 1).reverse()));
+		}
+	}
+
 	return {
-		txid: key.subarray(1, 33).reverse(),
-		vout: Number.parseInt(key.subarray(33, key.length + 1).reverse().toString('hex'), 16), // Inefficient, fixme
+		txid,
+		vout,
 	};
 }
 

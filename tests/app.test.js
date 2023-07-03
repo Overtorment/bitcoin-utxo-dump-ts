@@ -20,6 +20,16 @@ it('parsing key into OutPoint from the chainstate works', () => {
 	assert.strictEqual(o1.vout, 16);
 });
 
+it('parsing key into OutPoint from the chainstate works (with longer vout)', () => {
+	let o1 = keyToOutPoint(Buffer.from('43003d941c49a918f714a7856af197a579f1c2f48574e97efc2a701f12b1fa52676880', 'hex'));
+	assert.strictEqual(o1.txid.toString('hex'), '6752fab1121f702afc7ee97485f4c2f179a597f16a85a714f718a9491c943d00');
+	assert.strictEqual(o1.vout, 232);
+
+	o1 = keyToOutPoint(Buffer.from('43003d941c49a918f714a7856af197a579f1c2f48574e97efc2a701f12b1fa52671683', 'hex'));
+	assert.strictEqual(o1.txid.toString('hex'), '6752fab1121f702afc7ee97485f4c2f179a597f16a85a714f718a9491c943d00');
+	assert.strictEqual(o1.vout, 534);
+});
+
 it('invalid event type throws', () => {
 	assert.throws(() => keyToOutPoint(Buffer.from('440000155b9869d56c66d9e86e3c01de38e3892a42b99949fe109ac034fff6583910', 'hex')));
 });
