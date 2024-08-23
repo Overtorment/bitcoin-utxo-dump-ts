@@ -18,6 +18,7 @@ type OutputData = {
 
 export const EVENT_TYPE_UTXO = 67;
 export const EVENT_TYPE_OBFUSCATE_KEY = 14;
+
 export function keyToOutPoint(key: Buffer): OutPoint {
 	const eventType = key.readInt8(0);
 
@@ -25,18 +26,14 @@ export function keyToOutPoint(key: Buffer): OutPoint {
 		throw new Error('Unexpected event type');
 	}
 
-	const txid = key.subarray(1, 33).reverse();
+	const txid = Buffer.from(key.subarray(1, 33)).reverse();
 
 	let vout = 0;
-	switch (key.length - 33) {
-		case 1: {
-			vout = key.subarray(33, key.length + 1).readInt8();
-			break;
-		}
-
-		default: {
-			vout = Number(varint128Decode(key.subarray(33, key.length + 1).reverse()));
-		}
+	const voutBuffer = key.subarray(33);
+	if (voutBuffer.length === 1) {
+		vout = voutBuffer.readInt8();
+	} else {
+		vout = Number(varint128Decode(Buffer.from(voutBuffer)));
 	}
 
 	return {

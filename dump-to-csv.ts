@@ -11,8 +11,8 @@ const fs = require('node:fs');
 const levelup = require('levelup');
 const leveldown = require('leveldown');
 
-const dbPath = '/home/ghost/Documents/chainstate';
-const csvFilePath = 'utxo-dump.csv';
+const dbPath = '/home/ghost/Downloads/chainstate';
+const csvFilePath = 'utxo-dump-2.csv';
 
 fs.writeFileSync(csvFilePath, '');
 const db = levelup(leveldown(dbPath));
@@ -32,7 +32,7 @@ db.createReadStream()
 			const elapsed = (current - start) / 1000;
 			const remaining = totalEstimated - c;
 			const ETA = (elapsed * remaining) / c;
-			console.log('elapsed:', Math.floor(elapsed), 'sec;', 'ETA:', Math.ceil(ETA / 60), 'min');
+			console.log('elapsed:', Math.floor(elapsed), 'sec;', 'ETA:', Math.ceil(ETA / 60), 'min;', 'records:', c);
 		}
 
 		const eventType = keyToEventType(data.key);

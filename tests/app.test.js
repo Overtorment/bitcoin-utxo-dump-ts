@@ -7,7 +7,7 @@ import {
 	keyToEventType,
 	keyToObfuscationKey,
 	keyToOutPoint,
-	varint128Read,
+	varint128Read
 } from '../util';
 const bitcoin = require('bitcoinjs-lib');
 
@@ -20,15 +20,17 @@ it('parsing key into OutPoint from the chainstate works', () => {
 	assert.strictEqual(o1.vout, 16);
 });
 
-it('parsing key into OutPoint from the chainstate works (with longer vout)', () => {
-	let o1 = keyToOutPoint(Buffer.from('43003d941c49a918f714a7856af197a579f1c2f48574e97efc2a701f12b1fa52676880', 'hex'));
-	assert.strictEqual(o1.txid.toString('hex'), '6752fab1121f702afc7ee97485f4c2f179a597f16a85a714f718a9491c943d00');
-	assert.strictEqual(o1.vout, 232);
+it('parsing key into OutPoint does not mutate original buffer', () => {
+	const origHex = '43000059b1b1a2464d0ef6013a777660eb7a85594ec655b174aa54ea3562a2c53e8011';
+	const buffer = Buffer.from(origHex, 'hex');
 
-	o1 = keyToOutPoint(Buffer.from('43003d941c49a918f714a7856af197a579f1c2f48574e97efc2a701f12b1fa52671683', 'hex'));
-	assert.strictEqual(o1.txid.toString('hex'), '6752fab1121f702afc7ee97485f4c2f179a597f16a85a714f718a9491c943d00');
-	assert.strictEqual(o1.vout, 534);
+	let o1 = keyToOutPoint(buffer);
+
+	assert.strictEqual(origHex, buffer.toString('hex'));
+	assert.strictEqual(o1.txid.toString('hex'), '3ec5a26235ea54aa74b155c64e59857aeb6076773a01f60e4d46a2b1b1590000');
+	assert.strictEqual(o1.vout, 145);
 });
+
 
 it('invalid event type throws', () => {
 	assert.throws(() => keyToOutPoint(Buffer.from('440000155b9869d56c66d9e86e3c01de38e3892a42b99949fe109ac034fff6583910', 'hex')));
