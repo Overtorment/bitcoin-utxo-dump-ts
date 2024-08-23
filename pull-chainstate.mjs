@@ -7,7 +7,7 @@ setInterval(async () => {
     } catch (_) {}
 }, 5000);
 
-await $`rsync -avz root@electrum1.bluewallet.io:/mnt/volume_fra1_02/bitcoin_datadir/chainstate/*  /home/ghost/Downloads/chainstate/`
+await $`rsync -avz --delete root@electrum1.bluewallet.io:/mnt/volume_fra1_02/bitcoin_datadir/chainstate/  /home/ghost/Downloads/chainstate/`
 process.exit(0);
 
 
