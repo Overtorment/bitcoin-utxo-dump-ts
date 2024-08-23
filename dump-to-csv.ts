@@ -17,7 +17,7 @@ const csvFilePath = 'utxo-dump-2.csv';
 fs.writeFileSync(csvFilePath, '');
 const db = levelup(leveldown(dbPath));
 
-const totalEstimated = 101_956_999;
+const totalEstimated = 184_930_244;
 let c = 0;
 const start = Date.now();
 let obfuscateKey: Buffer = Buffer.from('338eb27667267366', 'hex'); // Init value, not sure if its ever used at all

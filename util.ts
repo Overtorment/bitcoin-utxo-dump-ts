@@ -1,55 +1,41 @@
 import ecc from './noble_ecc';
-const bitcoin = require('bitcoinjs-lib');
+import * as bitcoin from 'bitcoinjs-lib';
 
 bitcoin.initEccLib(ecc);
 
 type OutPoint = {
-	txid: Buffer;
-	vout: number;
+	readonly txid: Buffer;
+	readonly vout: number;
 };
 
 type OutputData = {
-	height: number;
-	amount: number;
-	nsize: number;
-	script: Buffer;
-	address: string;
+	readonly height: number;
+	readonly amount: number;
+	readonly nsize: number;
+	readonly script: Buffer;
+	readonly address: string;
 };
 
 export const EVENT_TYPE_UTXO = 67;
 export const EVENT_TYPE_OBFUSCATE_KEY = 14;
 
 export function keyToOutPoint(key: Buffer): OutPoint {
-	const eventType = key.readInt8(0);
-
-	if (eventType !== EVENT_TYPE_UTXO) {
+	if (key[0] !== EVENT_TYPE_UTXO) {
 		throw new Error('Unexpected event type');
 	}
 
 	const txid = Buffer.from(key.subarray(1, 33)).reverse();
-
-	let vout = 0;
 	const voutBuffer = key.subarray(33);
-	if (voutBuffer.length === 1) {
-		vout = voutBuffer.readInt8();
-	} else {
-		vout = Number(varint128Decode(Buffer.from(voutBuffer)));
-	}
+	const vout = voutBuffer.length === 1 ? voutBuffer[0] : Number(varint128Decode(voutBuffer));
 
-	return {
-		txid,
-		vout,
-	};
+	return { txid, vout };
 }
 
 export function keyToObfuscationKey(key: Buffer, value: Buffer): Buffer {
-	const eventType = key.readInt8(0);
-
-	if (eventType !== EVENT_TYPE_OBFUSCATE_KEY) {
+	if (key.readInt8(0) !== EVENT_TYPE_OBFUSCATE_KEY) {
 		throw new Error('Unexpected event type');
 	}
 
-	// First byte is basically size of the key, ignore it
 	return value.subarray(1);
 }
 
@@ -58,18 +44,18 @@ export function keyToEventType(key: Buffer): number {
 }
 
 export function deobfuscateValue(obfuscatedValue: Buffer, obfuscateKey: Buffer): Buffer {
-	const returnValue = Buffer.alloc(obfuscatedValue.length);
+	const returnValue = Buffer.allocUnsafe(obfuscatedValue.length);
+	const keyLength = obfuscateKey.length;
 
-	for (const [c, element] of obfuscatedValue.entries()) {
-		returnValue[c] = element ^ obfuscateKey[c % obfuscateKey.length];
+	for (let i = 0; i < obfuscatedValue.length; i++) {
+		returnValue[i] = obfuscatedValue[i] ^ obfuscateKey[i % keyLength];
 	}
 
 	return returnValue;
 }
 
-export function deobfuscatedValueToOutputData(value: Buffer): OutputData {
+export function deobfuscatedValueToOutputData(value: Buffer, decodeAddress = true): OutputData {
 	let offset = 0;
-
 	let [varint, bytesRead] = varint128Read(value, 0);
 	offset += bytesRead;
 
@@ -105,6 +91,11 @@ export function deobfuscatedValueToOutputData(value: Buffer): OutputData {
 	const script = value.slice(offset);
 
 	let address = '?';
+
+	if (!decodeAddress) {
+		// return early, address decode is a costly operation
+		return { script, height, amount, address, nsize };
+	}
 
 	switch (true) {
 		// P2PKH
@@ -163,71 +154,38 @@ export function deobfuscatedValueToOutputData(value: Buffer): OutputData {
 		}
 	}
 
-	return {
-		script,
-		height,
-		amount,
-		address,
-		nsize,
-	};
+	return { script, height, amount, address, nsize };
 }
 
 export function varint128Read(bytes: Buffer, offset: number): [Buffer, number] {
-	let result: Buffer = Buffer.alloc(0);
-
-	for (let i = offset; i < bytes.length; i++) {
-		const v = bytes[i];
-		result = Buffer.concat([result, Buffer.from([bytes[i]])]);
-
-		const set = v & 128;
-
-		if (set === 0) {
-			return [result, result.length];
-		}
+	let i = offset;
+	while (i < bytes.length && (bytes[i] & 128) !== 0) {
+		i++;
 	}
-
-	return [result, 0];
+	return [bytes.subarray(offset, i + 1), i - offset + 1];
 }
 
 export function varint128Decode(bytes: Buffer): bigint {
-	let n = BigInt(0);
-
-	for (const v of bytes) {
-		n <<= BigInt(7);
-		n |= BigInt(v & 127);
-
-		if ((v & 128) !== 0) {
+	let n = 0n;
+	for (let i = 0; i < bytes.length; i++) {
+		n = (n << 7n) | BigInt(bytes[i] & 127);
+		if ((bytes[i] & 128) !== 0) {
 			n++;
 		}
 	}
-
 	return n;
 }
 
 export function decompressValue(x: bigint): bigint {
-	let n = BigInt(0); // Decompressed value
+	if (x === 0n) return 0n;
 
-	// Return value if it is zero (nothing to decompress)
-	if (x === BigInt(0)) {
-		return BigInt(0);
-	}
+	x -= 1n;
+	const e = x % 10n;
+	x /= 10n;
 
-	// Decompress...
-	x -= BigInt(1); // Subtract 1 first
-	const e = x % BigInt(10); // Remainder mod 10
-	x /= BigInt(10); // Quotient mod 10 (reduce x down by 10)
+	const n = e < 9n
+		? (x / 9n) * 10n + (x % 9n) + 1n
+		: x + 1n;
 
-	// If the remainder is less than 9
-	if (e < BigInt(9)) {
-		const d = x % BigInt(9); // Remainder mod 9
-		x /= BigInt(9); // Reduce x down by 9
-		n = x * BigInt(10) + d + BigInt(1); // Work out n
-	} else {
-		n = x + BigInt(1);
-	}
-
-	// Multiply n by 10 to the power of the first remainder
-	const result = BigInt(n) * BigInt(10 ** Number(e));
-
-	return result;
+	return n * (10n ** BigInt(Number(e)));
 }

@@ -13,9 +13,10 @@ Usage
 -----
 
 * `git clone`
-* `npm i`
-* edit `dump-to-csv.ts` and put your own path to `chainstate`
-* `npx ts-node dump-to-csv.ts`
+* `bun install`
+* edit `dump-to-csv.ts` & `pull-chainstate.mjs` and put your own path to `chainstate`
+* `./pull-chainstate.mjs` (needs `rsync`)
+* `bun run dump-to-csv.ts`
 
 
 
@@ -25,4 +26,4 @@ Tests
 
 Tests live in `tests/`
 
-* `npm t`
+* `bun test`
